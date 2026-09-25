@@ -6,7 +6,7 @@ from discord.ext import commands
 # CONFIG
 # =========================
 
-TOKEN = os.getenv("MTU1MzA3NjAwMjI5OTcxNTY3NA.G5rVN4.dN7WqElM1Kvv4aGQARP4Bo41Evsk4giNMOvGJo")
+TOKEN = os.getenv("DISCORD_TOKEN")
 
 # Put your Discord SERVER ID here
 GUILD_ID = 1552705732481126480

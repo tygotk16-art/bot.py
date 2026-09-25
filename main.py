@@ -134,7 +134,6 @@ class CloseTicketView(discord.ui.View):
 # =========================
 
 class TicketView(discord.ui.View):
-
     def __init__(self):
         super().__init__(timeout=None)
 
@@ -144,17 +143,14 @@ class TicketView(discord.ui.View):
         style=discord.ButtonStyle.green,
         custom_id="ticket_create"
     )
-    async def create_ticket(
-        self,
-        interaction: discord.Interaction,
-        button: discord.ui.Button
-    ):
+    async def create_ticket(self, interaction, button):
         guild = interaction.guild
         user = interaction.user
 
         if guild is None:
             return
 
+        # Find Staff role
         staff_role = discord.utils.get(
             guild.roles,
             name=STAFF_ROLE_NAME
@@ -167,6 +163,7 @@ class TicketView(discord.ui.View):
             )
             return
 
+        # Find or create Tickets category
         category = discord.utils.get(
             guild.categories,
             name="Tickets"
@@ -177,6 +174,7 @@ class TicketView(discord.ui.View):
                 name="Tickets"
             )
 
+        # Prevent duplicate tickets
         ticket_name = f"ticket-{user.id}"
 
         existing = discord.utils.get(
@@ -191,6 +189,10 @@ class TicketView(discord.ui.View):
             )
             return
 
+        # Only:
+        # - Ticket creator
+        # - Staff
+        # can see the ticket.
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(
                 view_channel=False
@@ -207,10 +209,12 @@ class TicketView(discord.ui.View):
                 view_channel=True,
                 send_messages=True,
                 read_message_history=True,
-                manage_messages=True
+                manage_messages=True,
+                attach_files=True
             )
         }
 
+        # Create private ticket
         channel = await guild.create_text_channel(
             ticket_name,
             category=category,
@@ -218,6 +222,7 @@ class TicketView(discord.ui.View):
             reason=f"Ticket created by {user}"
         )
 
+        # Ticket message
         embed = discord.Embed(
             title="🎫 Support Ticket",
             description=(

@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 
-TOKEN = "YOUR_BOT_TOKEN"
+TOKEN = "MTU1MzA1NTE0NzY1ODE4MjY5Nw.GnAwAL.8mteEeivypMtQ8TxnQ4YH27hNVRjdylvc7BKIA"
 
 intents = discord.Intents.default()
 intents.guilds = True

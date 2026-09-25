@@ -393,4 +393,3 @@ if not TOKEN:
     )
 
 bot.run(TOKEN)
-```

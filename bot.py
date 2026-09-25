@@ -11,7 +11,7 @@ from discord.ext import commands
 TOKEN = os.getenv("DISCORD_TOKEN")
 
 # Put your Discord SERVER ID here
-GUILD_ID = 123456789012345678
+GUILD_ID = 1552705732481126480
 
 # Change this if your staff role has a different name
 STAFF_ROLE_NAME = "Staff"

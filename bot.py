@@ -375,22 +375,18 @@ async def on_ready():
     print("=" * 40)
 
 
-# =========================
-# PERSISTENT BUTTONS
-# =========================
-
 @bot.event
 async def setup_hook():
     bot.add_view(TicketView())
     bot.add_view(CloseTicketView())
 
 
-# =========================
-# START BOT
-# =========================
-
 if not TOKEN:
     raise RuntimeError(
+        "DISCORD_TOKEN environment variable is not set."
+    )
+
+bot.run(TOKEN)
         "DISCORD_TOKEN environment variable is not set."
     )
 

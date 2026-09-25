@@ -379,8 +379,10 @@ async def on_ready():
 # PERSISTENT BUTTONS
 # =========================
 
-bot.add_view(TicketView())
-bot.add_view(CloseTicketView())
+@bot.event
+async def setup_hook():
+    bot.add_view(TicketView())
+    bot.add_view(CloseTicketView())
 
 
 # =========================

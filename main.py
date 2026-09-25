@@ -1,4 +1,3 @@
-```python
 import os
 import asyncio
 import discord
@@ -21,6 +20,7 @@ if not TOKEN:
 
 intents = discord.Intents.default()
 intents.guilds = True
+intents.message_content = True
 
 # =========================
 # CHANNEL STRUCTURE
@@ -55,8 +55,6 @@ CHANNEL_STRUCTURE = {
 # =========================
 # TICKET PANEL CHANNELS
 # =========================
-# These channels will receive
-# a Create Ticket button.
 
 TICKET_PANEL_CHANNELS = [
     "tickets",
@@ -67,9 +65,7 @@ TICKET_PANEL_CHANNELS = [
     "sell-to-us"
 ]
 
-# Unique marker used to identify
-# Verify's official ticket panels.
-
+# Unique marker for Verify panels
 TICKET_PANEL_MARKER = "VERIFY_TICKET_PANEL_V1"
 
 # =========================
@@ -108,23 +104,15 @@ async def get_or_create_channel(category, name):
 
 async def ticket_panel_exists(channel):
 
-    """
-    Checks whether this channel already contains
-    Verify's official ticket panel.
-
-    It does NOT simply check for buttons because
-    other messages may also contain buttons.
-    """
-
     try:
 
         async for message in channel.history(limit=100):
 
-            # Only check messages from this bot
+            # Only check messages from Verify
             if message.author != bot.user:
                 continue
 
-            # Check embeds
+            # Check embeds for our unique marker
             for embed in message.embeds:
 
                 if embed.footer and embed.footer.text:
@@ -286,7 +274,7 @@ class TicketView(discord.ui.View):
 
         overwrites = {
 
-            # Everyone else cannot see it
+            # Everyone else cannot see the ticket
             guild.default_role: discord.PermissionOverwrite(
                 view_channel=False
             ),
@@ -459,6 +447,7 @@ class TicketBot(commands.Bot):
 
 bot = TicketBot()
 
+
 # =========================
 # READY
 # =========================
@@ -477,10 +466,6 @@ async def on_ready():
     )
 
     print("=" * 50)
-
-    # =========================
-    # FIND SERVER
-    # =========================
 
     guild = bot.get_guild(
         GUILD_ID
@@ -548,7 +533,7 @@ async def on_ready():
         )
 
     # =========================
-    # CREATE PANELS
+    # AUTOMATICALLY SETUP PANELS
     # =========================
 
     await setup_ticket_panels(
@@ -573,8 +558,77 @@ async def on_ready():
 
 
 # =========================
+# SETUP TICKETS COMMAND
+# =========================
+
+@bot.command(name="setup_tickets")
+@commands.has_permissions(administrator=True)
+async def setup_tickets_command(ctx):
+
+    # Make sure the command is being used in a server
+    if ctx.guild is None:
+        return
+
+    await ctx.send(
+        "🔧 Setting up ticket panels..."
+    )
+
+    try:
+
+        await setup_ticket_panels(
+            ctx.guild
+        )
+
+        await ctx.send(
+            "✅ Ticket panels have been checked and set up!"
+        )
+
+    except discord.Forbidden:
+
+        await ctx.send(
+            "❌ I don't have permission to create/send messages in one or more channels."
+        )
+
+    except Exception as e:
+
+        print(
+            f"❌ Ticket setup error: {e}"
+        )
+
+        await ctx.send(
+            "❌ An error occurred while setting up the ticket panels. Check the Railway logs."
+        )
+
+
+# =========================
+# SETUP COMMAND ERROR
+# =========================
+
+@setup_tickets_command.error
+async def setup_tickets_error(ctx, error):
+
+    if isinstance(
+        error,
+        commands.MissingPermissions
+    ):
+
+        await ctx.send(
+            "❌ You need Administrator permission to use this command."
+        )
+
+    else:
+
+        print(
+            f"❌ Setup command error: {error}"
+        )
+
+        await ctx.send(
+            "❌ The command encountered an error."
+        )
+
+
+# =========================
 # START
 # =========================
 
 bot.run(TOKEN)
-```

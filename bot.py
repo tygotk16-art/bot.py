@@ -8,10 +8,11 @@ from discord.ext import commands
 # =========================
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-
 GUILD_ID = 1552705732481126480
-
 STAFF_ROLE_NAME = "Staff"
+
+if not TOKEN:
+    raise RuntimeError("DISCORD_TOKEN environment variable is not set.")
 
 # =========================
 # INTENTS
@@ -19,28 +20,7 @@ STAFF_ROLE_NAME = "Staff"
 
 intents = discord.Intents.default()
 intents.guilds = True
-intents.members = True
-intents.message_content = True
 
-# =========================
-# BOT
-# =========================
-
-class TicketBot(commands.Bot):
-
-    def __init__(self):
-        super().__init__(
-            command_prefix="!",
-            intents=intents
-        )
-
-    async def setup_hook(self):
-        # This runs after the bot's event loop has started.
-        self.add_view(TicketView())
-        self.add_view(CloseTicketView())
-
-
-bot = TicketBot()
 
 # =========================
 # CHANNEL STRUCTURE
@@ -51,41 +31,34 @@ CHANNEL_STRUCTURE = {
         "rules",
         "announcements"
     ],
-
     "Marketplace": [
         "buying",
         "selling",
         "vouches",
         "middleman-requests"
     ],
-
     "Support": [
         "tickets",
         "reports"
     ],
-
     "Staff": [
         "staff-chat",
         "logs",
         "📜-ticket-logs"
     ],
-
     "DONUT SMP": [
         "buying",
         "sell-to-us"
     ]
 }
 
+
 # =========================
 # HELPERS
 # =========================
 
 async def get_or_create_category(guild, name):
-
-    category = discord.utils.get(
-        guild.categories,
-        name=name
-    )
+    category = discord.utils.get(guild.categories, name=name)
 
     if category:
         return category
@@ -94,7 +67,6 @@ async def get_or_create_category(guild, name):
 
 
 async def get_or_create_channel(category, name):
-
     channel = discord.utils.get(
         category.text_channels,
         name=name
@@ -107,7 +79,7 @@ async def get_or_create_channel(category, name):
 
 
 # =========================
-# CLOSE TICKET
+# CLOSE TICKET VIEW
 # =========================
 
 class CloseTicketView(discord.ui.View):
@@ -126,25 +98,22 @@ class CloseTicketView(discord.ui.View):
         interaction: discord.Interaction,
         button: discord.ui.Button
     ):
-
         guild = interaction.guild
+
+        if guild is None:
+            return
 
         staff_role = discord.utils.get(
             guild.roles,
             name=STAFF_ROLE_NAME
         )
 
-        # If a staff role exists, require it.
-        if staff_role is not None:
-
-            if staff_role not in interaction.user.roles:
-
-                await interaction.response.send_message(
-                    "❌ You don't have permission to close this ticket.",
-                    ephemeral=True
-                )
-
-                return
+        if staff_role and staff_role not in interaction.user.roles:
+            await interaction.response.send_message(
+                "❌ You don't have permission to close this ticket.",
+                ephemeral=True
+            )
+            return
 
         await interaction.response.send_message(
             "🔒 Closing ticket in 5 seconds..."
@@ -153,18 +122,15 @@ class CloseTicketView(discord.ui.View):
         await asyncio.sleep(5)
 
         try:
-
             await interaction.channel.delete(
                 reason=f"Ticket closed by {interaction.user}"
             )
-
         except discord.NotFound:
-
             pass
 
 
 # =========================
-# CREATE TICKET
+# CREATE TICKET VIEW
 # =========================
 
 class TicketView(discord.ui.View):
@@ -183,9 +149,11 @@ class TicketView(discord.ui.View):
         interaction: discord.Interaction,
         button: discord.ui.Button
     ):
-
         guild = interaction.guild
         user = interaction.user
+
+        if guild is None:
+            return
 
         staff_role = discord.utils.get(
             guild.roles,
@@ -193,15 +161,11 @@ class TicketView(discord.ui.View):
         )
 
         if staff_role is None:
-
             await interaction.response.send_message(
                 f"❌ Staff role `{STAFF_ROLE_NAME}` was not found.",
                 ephemeral=True
             )
-
             return
-
-        # Find/create ticket category
 
         category = discord.utils.get(
             guild.categories,
@@ -209,12 +173,9 @@ class TicketView(discord.ui.View):
         )
 
         if category is None:
-
             category = await guild.create_category(
                 name="Tickets"
             )
-
-        # Check existing ticket
 
         ticket_name = f"ticket-{user.id}"
 
@@ -224,41 +185,31 @@ class TicketView(discord.ui.View):
         )
 
         if existing:
-
             await interaction.response.send_message(
                 f"❌ You already have a ticket: {existing.mention}",
                 ephemeral=True
             )
-
             return
 
-        # Permissions
-
         overwrites = {
+            guild.default_role: discord.PermissionOverwrite(
+                view_channel=False
+            ),
 
-            guild.default_role:
-                discord.PermissionOverwrite(
-                    view_channel=False
-                ),
+            user: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                attach_files=True
+            ),
 
-            user:
-                discord.PermissionOverwrite(
-                    view_channel=True,
-                    send_messages=True,
-                    read_message_history=True,
-                    attach_files=True
-                ),
-
-            staff_role:
-                discord.PermissionOverwrite(
-                    view_channel=True,
-                    send_messages=True,
-                    read_message_history=True,
-                    manage_messages=True
-                )
+            staff_role: discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                read_message_history=True,
+                manage_messages=True
+            )
         }
-
-        # Create ticket
 
         channel = await guild.create_text_channel(
             ticket_name,
@@ -291,6 +242,30 @@ class TicketView(discord.ui.View):
 
 
 # =========================
+# BOT
+# =========================
+
+class TicketBot(commands.Bot):
+
+    def __init__(self):
+        super().__init__(
+            command_prefix="!",
+            intents=intents
+        )
+
+    async def setup_hook(self):
+        print("Registering persistent ticket buttons...")
+
+        self.add_view(TicketView())
+        self.add_view(CloseTicketView())
+
+        print("Persistent buttons registered.")
+
+
+bot = TicketBot()
+
+
+# =========================
 # READY
 # =========================
 
@@ -305,16 +280,13 @@ async def on_ready():
     guild = bot.get_guild(GUILD_ID)
 
     if guild is None:
-
         print("❌ SERVER NOT FOUND")
-        print("Check your GUILD_ID.")
+        print("Check GUILD_ID and make sure the bot is in the server.")
         return
 
     print(f"Connected to: {guild.name}")
 
-    # =========================
-    # CREATE CHANNELS
-    # =========================
+    # Create normal server structure
 
     for category_name, channels in CHANNEL_STRUCTURE.items():
 
@@ -334,9 +306,7 @@ async def on_ready():
 
             print(f"   ✓ #{channel.name}")
 
-    # =========================
-    # TICKET CATEGORY
-    # =========================
+    # Create ticket category
 
     ticket_category = discord.utils.get(
         guild.categories,
@@ -344,16 +314,13 @@ async def on_ready():
     )
 
     if ticket_category is None:
-
-        await guild.create_category(
+        ticket_category = await guild.create_category(
             name="Tickets"
         )
 
         print("📁 Tickets category created")
 
-    # =========================
-    # TICKET PANEL
-    # =========================
+    # Find ticket panel channel
 
     ticket_channel = discord.utils.get(
         guild.text_channels,
@@ -361,31 +328,28 @@ async def on_ready():
     )
 
     if ticket_channel is None:
-
         print("❌ #tickets channel not found.")
         return
+
+    # Check for existing panel
 
     panel_exists = False
 
     try:
-
-        async for message in ticket_channel.history(
-            limit=100
-        ):
+        async for message in ticket_channel.history(limit=100):
 
             if (
                 message.author == bot.user
                 and message.components
             ):
-
                 panel_exists = True
                 break
 
     except discord.Forbidden:
-
         print("❌ Bot cannot read #tickets.")
-
         return
+
+    # Create panel
 
     if not panel_exists:
 
@@ -409,7 +373,6 @@ async def on_ready():
         print("✓ Ticket panel created")
 
     else:
-
         print("✓ Ticket panel already exists")
 
     print("\n" + "=" * 50)
@@ -420,11 +383,5 @@ async def on_ready():
 # =========================
 # START
 # =========================
-
-if not TOKEN:
-
-    raise RuntimeError(
-        "DISCORD_TOKEN environment variable is not set."
-    )
 
 bot.run(TOKEN)

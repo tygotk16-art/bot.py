@@ -2,7 +2,7 @@ import os
 import discord
 from discord.ext import commands
 
-TOKEN = os.getenv("MTU1MzA3NjAwMjI5OTcxNTY3NA.GMq25D.1k7z69ilROU77umDyV6XgVu-EsHxrFjS5VbkY8")
+TOKEN = os.getenv("TOKEN")
 
 STAFF_ROLES = ["🛠 Admin", "🔨 Moderator"]
 LOG_CHANNEL_NAME = "📜-ticket-logs"
